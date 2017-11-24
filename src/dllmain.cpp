@@ -168,6 +168,10 @@ __declspec(dllexport) INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM w
 	const int DLG_OK_BUTTON = 1;
 	const int DLG_CANCEL_BUTTON = 2;
 	const int DLG_WINDOWED_CHECKBOX = 1002;
+	const int DLG_RENDER_DEVICE_COMBO = 1003;
+	const int DLG_SOUND_OUTPUT_DEVICE_COMBO = 1010;
+	const int DLG_RENDER_DEVICE_LABEL = 1011;
+	const int DLG_SOUND_OUTPUT_DEVICE_LABEL = 1013;
 
 	// Anything in the 2000s should be safe to use fo my own IDs
 	const int DLG_PARAMS_LABEL = 2000;
@@ -177,21 +181,63 @@ __declspec(dllexport) INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM w
 	{
 		INT_PTR result = CallWindowProcA(reinterpret_cast<WNDPROC>(0x0047B060), hDlg, uMsg, wParam, lParam);
 
-		SetWindowPos(hDlg, 0, 100, 100, 420, 410, SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER);
-
-		HWND hRenderDeviceLabel = GetDlgItem(hDlg, 1011);
-		HFONT hFont = (HFONT)SendMessageA(hRenderDeviceLabel, WM_GETFONT, 0, 0);
 		HINSTANCE hInst = (HINSTANCE)GetWindowLongA(hDlg, GWL_HINSTANCE);
 
-		HWND hProcessLabel = CreateWindowExA(0, "STATIC", "Parameters (Kain2.arg)", WS_CHILD | WS_VISIBLE,
-			10, 250, 200, 20,
+		HWND hOKButton = GetDlgItem(hDlg, DLG_OK_BUTTON);
+		HWND hCancelButton = GetDlgItem(hDlg, DLG_CANCEL_BUTTON);
+		HWND hRenderDeviceCombo = GetDlgItem(hDlg, DLG_RENDER_DEVICE_COMBO);
+		HWND hSoundOutputDeviceCombo = GetDlgItem(hDlg, DLG_SOUND_OUTPUT_DEVICE_COMBO);
+		HWND hRenderDeviceLabel = GetDlgItem(hDlg, DLG_RENDER_DEVICE_LABEL);
+		HWND hSoundOutputDeviceLabel = GetDlgItem(hDlg, DLG_SOUND_OUTPUT_DEVICE_LABEL);
+
+		HFONT hFont = (HFONT)SendMessageA(hRenderDeviceLabel, WM_GETFONT, 0, 0);
+
+		RECT windowRect;
+		RECT clientRect;
+		RECT okRect;
+		RECT soundOutputDeviceComboRect;
+		RECT renderDeviceLabelRect;
+		RECT soundOutputDeviceLabelRect;
+
+		GetWindowRect(hDlg, &windowRect);
+
+		GetClientRect(hDlg, &clientRect);
+		MapWindowPoints(HWND_DESKTOP, hDlg, (LPPOINT)&clientRect, 2);
+		GetWindowRect(hOKButton, &okRect);
+		MapWindowPoints(HWND_DESKTOP, hDlg, (LPPOINT)&okRect, 2);
+		GetWindowRect(hSoundOutputDeviceCombo, &soundOutputDeviceComboRect);
+		MapWindowPoints(HWND_DESKTOP, hDlg, (LPPOINT)&soundOutputDeviceComboRect, 2);
+		GetWindowRect(hRenderDeviceLabel, &renderDeviceLabelRect);
+		MapWindowPoints(HWND_DESKTOP, hDlg, (LPPOINT)&renderDeviceLabelRect, 2);
+		GetWindowRect(hSoundOutputDeviceLabel, &soundOutputDeviceLabelRect);
+		MapWindowPoints(HWND_DESKTOP, hDlg, (LPPOINT)&soundOutputDeviceLabelRect, 2);
+
+		int windowWidth = windowRect.right - windowRect.left;
+		int windowHeight = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top);
+		int buttonHeight = okRect.bottom - okRect.top;
+		int labelMargin = soundOutputDeviceLabelRect.left;
+		int labelWidth = soundOutputDeviceLabelRect.right - soundOutputDeviceLabelRect.left;
+		int labelHeight = soundOutputDeviceLabelRect.bottom - soundOutputDeviceLabelRect.top;
+		int comboWidth = soundOutputDeviceComboRect.right - soundOutputDeviceComboRect.left;
+		int comboHeight = soundOutputDeviceComboRect.bottom - soundOutputDeviceComboRect.top;
+		int comboMargin = soundOutputDeviceComboRect.left;
+		int spacing = renderDeviceLabelRect.top;
+		int labelSpacing = soundOutputDeviceComboRect.top - soundOutputDeviceLabelRect.top;
+		int top = soundOutputDeviceComboRect.bottom;
+
+		top += spacing;
+
+		HWND hParamsLabel = CreateWindowExA(0, "STATIC", "Parameters (Kain2.arg)", WS_CHILD | WS_VISIBLE,
+			labelMargin, top, labelWidth, labelHeight,
 			hDlg, (HMENU)DLG_PARAMS_LABEL, hInst, 0
 		);
 		SendDlgItemMessageA(hDlg, DLG_PARAMS_LABEL, WM_SETFONT, (WPARAM)hFont, 0);
 
+		top += labelSpacing;
+
 		HWND hParamsBox = CreateWindowExA(
 			WS_EX_CLIENTEDGE, "EDIT", 0, WS_CHILD | WS_VISIBLE | ES_LEFT | ES_MULTILINE,
-			10, 270, 390, 50, hDlg, (HMENU)DLG_PARAMS_BOX, 0, 0
+			comboMargin, top, comboWidth, (5 * comboHeight) / 2, hDlg, (HMENU)DLG_PARAMS_BOX, 0, 0
 		);
 		SendDlgItemMessageA(hDlg, DLG_PARAMS_BOX, WM_SETFONT, (WPARAM)hFont, 0);
 		SendDlgItemMessageA(hDlg, DLG_PARAMS_BOX, EM_LIMITTEXT, 256, 0);
@@ -212,18 +258,20 @@ __declspec(dllexport) INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM w
 			SetDlgItemTextA(hDlg, DLG_PARAMS_BOX, szParams);
 		}
 
-		HWND hOKButton = GetDlgItem(hDlg, DLG_OK_BUTTON);
-		HWND hCancelButton = GetDlgItem(hDlg, DLG_CANCEL_BUTTON);
+		top += (5 * comboHeight) / 2;
 
-		RECT rect;
+		top += spacing;
 
-		GetWindowRect(hOKButton, &rect);
-		MapWindowPoints(HWND_DESKTOP, hDlg, (LPPOINT)&rect, 2);
-		SetWindowPos(hOKButton, 0, /*rect.left*/ 10, /*rect.top + 200*/ 340, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+		SetWindowPos(hOKButton, 0, comboMargin, top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+		SetWindowPos(hCancelButton, 0, comboMargin + okRect.right, top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
-		GetWindowRect(hCancelButton, &rect);
-		MapWindowPoints(HWND_DESKTOP, hDlg, (LPPOINT)&rect, 2);
-		SetWindowPos(hCancelButton, 0, /*rect.left*/ 100, /*rect.top + 200*/ 340, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+		top += buttonHeight;
+
+		top += spacing;
+
+		top += windowHeight;
+
+		SetWindowPos(hDlg, 0, 0, 0, windowWidth, top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
 		return result;
 	}
@@ -286,7 +334,7 @@ __declspec(dllexport) void Initialise()
 	char* windowStyleExPointer = reinterpret_cast<char*>(0x0047B86E);
 	*windowStyleExPointer = 0;
 
-	char* neverWindowedPointer = reinterpret_cast<char*>(0x00475563);
+	unsigned char* neverWindowedPointer = reinterpret_cast<unsigned char*>(0x00475563);
 	*neverWindowedPointer = 0xEB;
 
 	HANDLE process = GetCurrentProcess();

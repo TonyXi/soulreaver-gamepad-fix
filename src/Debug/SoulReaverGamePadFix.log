@@ -1,7 +1,6 @@
 ﻿  stdafx.cpp
   dllmain.cpp
-c:\users\andrew\documents\visual studio 2015\projects\soulreaver-gamepad-fix\src\dllmain.cpp(290): warning C4309: '=': truncation of constant value
   SoulReaverGamePadFix.cpp
-     Creating library C:\Users\Andrew\Documents\Visual Studio 2015\Projects\soulreaver-gamepad-fix\src\Debug\SoulReaverGamePadFix.lib and object C:\Users\Andrew\Documents\Visual Studio 2015\Projects\soulreaver-gamepad-fix\src\Debug\SoulReaverGamePadFix.exp
-  SoulReaverGamePadFix.vcxproj -> C:\Users\Andrew\Documents\Visual Studio 2015\Projects\soulreaver-gamepad-fix\src\Debug\SoulReaverGamePadFix.dll
-  SoulReaverGamePadFix.vcxproj -> C:\Users\Andrew\Documents\Visual Studio 2015\Projects\soulreaver-gamepad-fix\src\Debug\SoulReaverGamePadFix.pdb (Full PDB)
+     Creating library C:\Users\Andrew\Documents\Visual Studio 2015\Projects\soulreaver-gamepad-fix\src\Debug\dinput.lib and object C:\Users\Andrew\Documents\Visual Studio 2015\Projects\soulreaver-gamepad-fix\src\Debug\dinput.exp
+  SoulReaverGamePadFix.vcxproj -> C:\Users\Andrew\Documents\Visual Studio 2015\Projects\soulreaver-gamepad-fix\src\Debug\dinput.dll
+  SoulReaverGamePadFix.vcxproj -> C:\Users\Andrew\Documents\Visual Studio 2015\Projects\soulreaver-gamepad-fix\src\Debug\dinput.pdb (Full PDB)
