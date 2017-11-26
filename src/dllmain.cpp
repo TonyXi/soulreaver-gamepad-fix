@@ -124,12 +124,54 @@ void SoulReaverGamePadFix()
 		mov result, eax
 	}
 
-	if (dijoystate->lX > -500 && dijoystate->lX < 500)
+	BYTE jump     = dijoystate->rgbButtons[0];  // B
+	BYTE devour   = dijoystate->rgbButtons[1];  // X
+	BYTE action   = dijoystate->rgbButtons[2];  // A
+	BYTE aim      = dijoystate->rgbButtons[3];  // Y
+	BYTE crouch   = dijoystate->rgbButtons[4];  // LB
+	BYTE sneak    = dijoystate->rgbButtons[5];  // RB
+	BYTE glyph    = dijoystate->rgbButtons[6];  // LC
+	BYTE pause    = dijoystate->rgbButtons[7];  // RC
+	BYTE panLeft  = dijoystate->rgbButtons[8];  // Back
+	BYTE panRight = dijoystate->rgbButtons[9];  // Start
+	BYTE up       = dijoystate->rgbButtons[10]; // D-Up
+	BYTE down     = dijoystate->rgbButtons[11]; // D-Down
+	BYTE left     = dijoystate->rgbButtons[12]; // D-Left
+	BYTE right    = dijoystate->rgbButtons[13]; // D-Right
+
+	dijoystate->rgbButtons[0] = action;   // X
+	dijoystate->rgbButtons[1] = jump;     // A
+	dijoystate->rgbButtons[2] = devour;   // B
+	dijoystate->rgbButtons[3] = aim;      // Y
+	dijoystate->rgbButtons[4] = crouch;   // LB
+	dijoystate->rgbButtons[5] = sneak;    // RB
+	dijoystate->rgbButtons[8] = glyph;    // Back
+	dijoystate->rgbButtons[9] = pause;    // Start
+	dijoystate->rgbButtons[6] = panLeft;  // LC
+	dijoystate->rgbButtons[7] = panRight; // RC
+
+	if (left)
+	{
+		dijoystate->lX = -500;
+	}
+	else if (right)
+	{
+		dijoystate->lX = 500;
+	}
+	else if (dijoystate->lX > -500 && dijoystate->lX < 500)
 	{
 		dijoystate->lX = 0;
 	}
 
-	if (dijoystate->lY > -500 && dijoystate->lY < 500)
+	if (up)
+	{
+		dijoystate->lY = 500;
+	}
+	else if (down)
+	{
+		dijoystate->lY = -500;
+	}
+	else if (dijoystate->lY > -500 && dijoystate->lY < 500)
 	{
 		dijoystate->lY = 0;
 	}
