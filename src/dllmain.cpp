@@ -2,6 +2,35 @@
 #include <stdio.h>
 #include <xinput.h>
 
+#define PLAYSTATION3_GAMEPAD_TRIANGLE 0
+#define PLAYSTATION3_GAMEPAD_CIRCLE   1
+#define PLAYSTATION3_GAMEPAD_CROSS    2
+#define PLAYSTATION3_GAMEPAD_SQUARE   3
+#define PLAYSTATION3_GAMEPAD_L2       4
+#define PLAYSTATION3_GAMEPAD_R2       5
+#define PLAYSTATION3_GAMEPAD_L1       6
+#define PLAYSTATION3_GAMEPAD_R1       7
+#define PLAYSTATION3_GAMEPAD_SELECT   8
+#define PLAYSTATION3_GAMEPAD_START    9
+#define PLAYSTATION3_GAMEPAD_L3       10
+#define PLAYSTATION3_GAMEPAD_R3       11
+#define PLAYSTATION3_GAMEPAD_PS       12
+
+#define PLAYSTATION4_GAMEPAD_SQUARE   0
+#define PLAYSTATION4_GAMEPAD_CROSS    1
+#define PLAYSTATION4_GAMEPAD_CIRCLE   2
+#define PLAYSTATION4_GAMEPAD_TRIANGLE 3
+#define PLAYSTATION4_GAMEPAD_L1       4
+#define PLAYSTATION4_GAMEPAD_R1       5
+#define PLAYSTATION4_GAMEPAD_L2       6
+#define PLAYSTATION4_GAMEPAD_R2       7
+#define PLAYSTATION4_GAMEPAD_SHARE    8
+#define PLAYSTATION4_GAMEPAD_OPTIONS  9
+#define PLAYSTATION4_GAMEPAD_L3       10
+#define PLAYSTATION4_GAMEPAD_R3       11
+#define PLAYSTATION4_GAMEPAD_PS       12
+#define PLAYSTATION4_GAMEPAD_PAD      13
+
 typedef struct DIJOYSTATE {
 	LONG    lX;             /* x-axis position      */
 	LONG    lY;             /* y-axis position      */
@@ -14,75 +43,115 @@ typedef struct DIJOYSTATE {
 	BYTE    rgbButtons[32]; /* 32 buttons           */
 } DIJOYSTATE, *LPDIJOYSTATE;
 
+typedef struct DIDEVICEINSTANCEA
+{
+	DWORD   dwSize;
+	GUID    guidInstance;
+	GUID    guidProduct;
+	DWORD   dwDevType;
+	CHAR    tszInstanceName[MAX_PATH];
+	CHAR    tszProductName[MAX_PATH];
+#if(DIRECTINPUT_VERSION >= 0x0500)
+	GUID    guidFFDriver;
+	WORD    wUsagePage;
+	WORD    wUsage;
+#endif /* DIRECTINPUT_VERSION >= 0x0500 */
+} DIDEVICEINSTANCEA, *LPDIDEVICEINSTANCEA;
+typedef DIDEVICEINSTANCEA DIDEVICEINSTANCE;
+typedef LPDIDEVICEINSTANCEA LPDIDEVICEINSTANCE;
+typedef const DIDEVICEINSTANCEA* LPCDIDEVICEINSTANCEA;
+typedef const DIDEVICEINSTANCE* LPCDIDEVICEINSTANCE;
+
+typedef BOOL(FAR PASCAL* LPDIENUMDEVICESCALLBACKA)(LPCDIDEVICEINSTANCEA, LPVOID);
+#define LPDIENUMDEVICESCALLBACK  LPDIENUMDEVICESCALLBACKA
+
+typedef struct DIDEVICEOBJECTINSTANCEA
+{
+	DWORD   dwSize;
+	GUID    guidType;
+	DWORD   dwOfs;
+	DWORD   dwType;
+	DWORD   dwFlags;
+	CHAR    tszName[MAX_PATH];
+#if(DIRECTINPUT_VERSION >= 0x0500)
+	DWORD   dwFFMaxForce;
+	DWORD   dwFFForceResolution;
+	WORD    wCollectionNumber;
+	WORD    wDesignatorIndex;
+	WORD    wUsagePage;
+	WORD    wUsage;
+	DWORD   dwDimension;
+	WORD    wExponent;
+	WORD    wReportId;
+#endif /* DIRECTINPUT_VERSION >= 0x0500 */
+} DIDEVICEOBJECTINSTANCEA, *LPDIDEVICEOBJECTINSTANCEA;
+typedef DIDEVICEOBJECTINSTANCEA DIDEVICEOBJECTINSTANCE;
+typedef LPDIDEVICEOBJECTINSTANCEA LPDIDEVICEOBJECTINSTANCE;
+typedef const DIDEVICEOBJECTINSTANCEA* LPCDIDEVICEOBJECTINSTANCEA;
+typedef const DIDEVICEOBJECTINSTANCE* LPCDIDEVICEOBJECTINSTANCE;
+
+typedef BOOL(FAR PASCAL* LPDIENUMDEVICEOBJECTSCALLBACKA)(LPCDIDEVICEOBJECTINSTANCEA, LPVOID);
+#define LPDIENUMDEVICEOBJECTSCALLBACK  LPDIENUMDEVICEOBJECTSCALLBACKA
+
 FARPROC p[7] = { 0 };
 
 bool xBox360PadFound = false;
 int xBox360PadSlot = -1;
 
+template<typename T>
+void WriteToAddress(int address, T value)
+{
+	HANDLE process = GetCurrentProcess();
+	T* pointer = reinterpret_cast<T*>(address);
+	DWORD oldProtect, newProtect;
+	VirtualProtectEx(process, pointer, sizeof(T), PAGE_EXECUTE_WRITECOPY, &oldProtect);
+	*pointer = value;
+	VirtualProtectEx(process, pointer, sizeof(T), oldProtect, &newProtect);
+}
+
 //DirectInputCreateA
 extern "C" __declspec(naked) void __stdcall __E__0__()
 {
-	__asm
-	{
-		jmp p[0];
-	}
+	__asm jmp p[0];
 }
 
 // DirectInputCreateEx
 extern "C" __declspec(naked) void __stdcall __E__1__()
 {
-	__asm
-	{
-		jmp p[1];
-	}
+	__asm jmp p[1];
 }
 
 // DirectInputCreateW
 extern "C" __declspec(naked) void __stdcall __E__2__()
 {
-	__asm
-	{
-		jmp p[2];
-	}
+	__asm jmp p[2];
 }
 
 // DllCanUnloadNow
 extern "C" __declspec(naked) void __stdcall __E__3__()
 {
-	__asm
-	{
-		jmp p[3];
-	}
+	__asm jmp p[3];
 }
 
 // DllGetClassObject
 extern "C" __declspec(naked) void __stdcall __E__4__()
 {
-	__asm
-	{
-		jmp p[4];
-	}
+	__asm jmp p[4];
 }
 
 //DllRegisterServer
 extern "C" __declspec(naked) void __stdcall __E__5__()
 {
-	__asm
-	{
-		jmp p[5];
-	}
+	__asm jmp p[5];
 }
 
 //DllUnregisterServer
 extern "C" __declspec(naked) void __stdcall __E__6__()
 {
-	__asm
-	{
-		jmp p[6];
-	}
+	__asm jmp p[6];
 }
 
-void SoulReaverGamePadFix()
+__declspec(dllexport) void __stdcall SoulReaverGamePadFix()
 {
 	int result;
 
@@ -99,106 +168,170 @@ void SoulReaverGamePadFix()
 		mov result, eax
 	}
 
-	XINPUT_STATE state;
-	ZeroMemory(&state, sizeof(XINPUT_STATE));
-	XInputGetState(xBox360PadSlot, &state);
-
-	WORD buttons = state.Gamepad.wButtons;
-
-	CHAR up = ((buttons & XINPUT_GAMEPAD_DPAD_UP) != 0) ? -1 : 0;
-	CHAR down = ((buttons & XINPUT_GAMEPAD_DPAD_DOWN) != 0) ? 1 : 0;
-	CHAR left = ((buttons & XINPUT_GAMEPAD_DPAD_LEFT) != 0) ? -1 : 0;
-	CHAR right = ((buttons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0) ? 1 : 0;
-	BYTE jump = ((buttons & XINPUT_GAMEPAD_A) != 0) ? 128 : 0;
-	BYTE devour = ((buttons & XINPUT_GAMEPAD_B) != 0) ? 128 : 0;
-	BYTE action = ((buttons & XINPUT_GAMEPAD_X) != 0) ? 128 : 0;
-	BYTE aim = ((buttons & XINPUT_GAMEPAD_Y) != 0) ? 128 : 0;
-	BYTE crouch = ((buttons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0) ? 128 : 0;
-	BYTE sneak = ((buttons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0) ? 128 : 0;
-	BYTE glyph = ((buttons & XINPUT_GAMEPAD_BACK) != 0) ? 128 : 0;
-	BYTE pause = ((buttons & XINPUT_GAMEPAD_START) != 0) ? 128 : 0;
-	BYTE panLeft = (state.Gamepad.bLeftTrigger >= 128) ? 128 : 0;
-	BYTE panRight = (state.Gamepad.bRightTrigger >= 128) ? 128 : 0;
-
-	short leftStickX = state.Gamepad.sThumbLX;
-	short leftStickY = state.Gamepad.sThumbLY;
-	short rightStickX = state.Gamepad.sThumbRX;
-	short rightStickY = state.Gamepad.sThumbRY;
-
-	if (leftStickX < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+	if (xBox360PadFound)
 	{
-		leftStickX = -1;
-	}
-	else if (leftStickX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
-	{
-		leftStickX = 1;
+		XINPUT_STATE state;
+		ZeroMemory(&state, sizeof(XINPUT_STATE));
+		XInputGetState(xBox360PadSlot, &state);
+
+		WORD buttons = state.Gamepad.wButtons;
+
+		CHAR up = ((buttons & XINPUT_GAMEPAD_DPAD_UP) != 0) ? -1 : 0;
+		CHAR down = ((buttons & XINPUT_GAMEPAD_DPAD_DOWN) != 0) ? 1 : 0;
+		CHAR left = ((buttons & XINPUT_GAMEPAD_DPAD_LEFT) != 0) ? -1 : 0;
+		CHAR right = ((buttons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0) ? 1 : 0;
+		BYTE jump = ((buttons & XINPUT_GAMEPAD_A) != 0) ? 128 : 0;
+		BYTE devour = ((buttons & XINPUT_GAMEPAD_B) != 0) ? 128 : 0;
+		BYTE action = ((buttons & XINPUT_GAMEPAD_X) != 0) ? 128 : 0;
+		BYTE aim = ((buttons & XINPUT_GAMEPAD_Y) != 0) ? 128 : 0;
+		BYTE crouch = ((buttons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0) ? 128 : 0;
+		BYTE sneak = ((buttons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0) ? 128 : 0;
+		BYTE glyph = ((buttons & XINPUT_GAMEPAD_BACK) != 0) ? 128 : 0;
+		BYTE pause = ((buttons & XINPUT_GAMEPAD_START) != 0) ? 128 : 0;
+		BYTE panLeft = (state.Gamepad.bLeftTrigger >= 128) ? 128 : 0;
+		BYTE panRight = (state.Gamepad.bRightTrigger >= 128) ? 128 : 0;
+
+		short leftStickX = state.Gamepad.sThumbLX;
+		short leftStickY = state.Gamepad.sThumbLY;
+		short rightStickX = state.Gamepad.sThumbRX;
+		short rightStickY = state.Gamepad.sThumbRY;
+
+		if (leftStickX < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+		{
+			leftStickX = -1;
+		}
+		else if (leftStickX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+		{
+			leftStickX = 1;
+		}
+		else
+		{
+			leftStickX = left + right;
+		}
+
+		if (leftStickY < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+		{
+			leftStickY = 1;
+		}
+		else if (leftStickY > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
+		{
+			leftStickY = -1;
+		}
+		else
+		{
+			leftStickY = up + down;
+		}
+
+		if (rightStickX < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+		{
+			rightStickX = -1;
+		}
+		else if (rightStickX > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+		{
+			rightStickX = 1;
+		}
+		else
+		{
+			rightStickX = 0;
+		}
+
+		if (rightStickY < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+		{
+			rightStickY = 1;
+		}
+		else if (rightStickY > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
+		{
+			rightStickY = -1;
+		}
+		else
+		{
+			rightStickY = 0;
+		}
+
+		dijoystate->lX = leftStickX * 500;
+		dijoystate->lY = leftStickY * 500;
+		dijoystate->lZ = 0;
+		dijoystate->lRx = 0;
+		dijoystate->lRy = 0;
+		dijoystate->lRz = 0;
+		dijoystate->rglSlider[0] = 0;
+		dijoystate->rglSlider[1] = 0;
+		dijoystate->rgdwPOV[0] = 0;
+		dijoystate->rgdwPOV[1] = 0;
+		dijoystate->rgdwPOV[2] = 0;
+		dijoystate->rgdwPOV[3] = 0;
+		dijoystate->rgbButtons[0] = action;
+		dijoystate->rgbButtons[1] = jump;
+		dijoystate->rgbButtons[2] = devour;
+		dijoystate->rgbButtons[3] = aim;
+		dijoystate->rgbButtons[4] = crouch;
+		dijoystate->rgbButtons[5] = sneak;
+		dijoystate->rgbButtons[6] = panLeft;
+		dijoystate->rgbButtons[7] = panRight;
+		dijoystate->rgbButtons[8] = glyph;
+		dijoystate->rgbButtons[9] = pause;
 	}
 	else
 	{
-		leftStickX = left + right;
-	}
+		BYTE jump = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_CROSS];
+		BYTE devour = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_CIRCLE];
+		BYTE action = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_SQUARE];
+		BYTE aim = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_TRIANGLE];
+		BYTE crouch = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_L1];
+		BYTE sneak = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_R1];
+		BYTE glyph = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_SHARE];
+		BYTE pause = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_OPTIONS];
+		BYTE panLeft = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_L2];
+		BYTE panRight = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_R2];
 
-	if (leftStickY < -XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
-	{
-		leftStickY = 1;
-	}
-	else if (leftStickY > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE)
-	{
-		leftStickY = -1;
-	}
-	else
-	{
-		leftStickY = up + down;
-	}
+		dijoystate->lRx = 0;
+		dijoystate->lRy = 0;
+		dijoystate->lRz = 0;
+		dijoystate->rglSlider[0] = 0;
+		dijoystate->rglSlider[1] = 0;
+		//dijoystate->rgdwPOV[0] = 0;
+		dijoystate->rgdwPOV[1] = 0;
+		dijoystate->rgdwPOV[2] = 0;
+		dijoystate->rgdwPOV[3] = 0;
+		dijoystate->rgbButtons[0] = action;
+		dijoystate->rgbButtons[1] = jump;
+		dijoystate->rgbButtons[2] = devour;
+		dijoystate->rgbButtons[3] = aim;
+		dijoystate->rgbButtons[4] = crouch;
+		dijoystate->rgbButtons[5] = sneak;
+		dijoystate->rgbButtons[6] = panLeft;
+		dijoystate->rgbButtons[7] = panRight;
+		dijoystate->rgbButtons[8] = glyph;
+		dijoystate->rgbButtons[9] = pause;
 
-	if (rightStickX < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
-	{
-		rightStickX = -1;
-	}
-	else if (rightStickX > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
-	{
-		rightStickX = 1;
-	}
-	else
-	{
-		rightStickX = 0;
-	}
+		if (dijoystate->rgdwPOV[0] == 27000)
+		{
+			dijoystate->lX = -500;
+		}
+		else if (dijoystate->rgdwPOV[0] == 9000)
+		{
+			dijoystate->lX = 500;
+		}
+		else if (dijoystate->lX > -500 && dijoystate->lX < 500)
+		{
+			dijoystate->lX = 0;
+		}
 
-	if (rightStickY < -XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
-	{
-		rightStickY = 1;
-	}
-	else if (rightStickY > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE)
-	{
-		rightStickY = -1;
-	}
-	else
-	{
-		rightStickY = 0;
-	}
+		if (dijoystate->rgdwPOV[0] == 0)
+		{
+			dijoystate->lY = -500;
+		}
+		else if (dijoystate->rgdwPOV[0] == 18000)
+		{
+			dijoystate->lY = 500;
+		}
+		else if (dijoystate->lY > -500 && dijoystate->lY < 500)
+		{
+			dijoystate->lY = 0;
+		}
 
-	dijoystate->lX = leftStickX * 500;
-	dijoystate->lY = leftStickY * 500;
-	dijoystate->lZ = 0;
-	dijoystate->lRx = 0;
-	dijoystate->lRy = 0;
-	dijoystate->lRz = 0;
-	dijoystate->rglSlider[0] = 0;
-	dijoystate->rglSlider[1] = 0;
-	dijoystate->rgdwPOV[0] = 0;
-	dijoystate->rgdwPOV[1] = 0;
-	dijoystate->rgdwPOV[2] = 0;
-	dijoystate->rgdwPOV[3] = 0;
-	dijoystate->rgbButtons[0] = action;
-	dijoystate->rgbButtons[1] = jump;
-	dijoystate->rgbButtons[2] = devour;
-	dijoystate->rgbButtons[3] = aim;
-	dijoystate->rgbButtons[4] = crouch;
-	dijoystate->rgbButtons[5] = sneak;
-	dijoystate->rgbButtons[8] = glyph;
-	dijoystate->rgbButtons[9] = pause;
-	dijoystate->rgbButtons[6] = panLeft;
-	dijoystate->rgbButtons[7] = panRight;
+		dijoystate->lZ = 0;
+	}
 
 	__asm mov eax, result;
 }
@@ -360,6 +493,18 @@ __declspec(dllexport) INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM w
 	return CallWindowProc(reinterpret_cast<WNDPROC>(0x0047B060), hDlg, uMsg, wParam, lParam);
 }
 
+__declspec(dllexport) BOOL PASCAL EvalDevice(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef)
+{
+	LPDIENUMDEVICESCALLBACK enumDevicesPointer = reinterpret_cast<LPDIENUMDEVICESCALLBACK>(0x00478460);
+	return enumDevicesPointer(lpddi, pvRef);
+}
+
+__declspec(dllexport) BOOL PASCAL EvalObject(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef)
+{
+	LPDIENUMDEVICEOBJECTSCALLBACK enumDeviceObjectsPointer = reinterpret_cast<LPDIENUMDEVICEOBJECTSCALLBACK>(0x00478700);
+	return enumDeviceObjectsPointer(lpddoi, pvRef);
+}
+
 bool LoadFunctions()
 {
 	char * sz_buffer = new char[255];
@@ -389,6 +534,9 @@ bool LoadFunctions()
 
 void InitializeDirectInput()
 {
+	WriteToAddress(0x004780DC, EvalDevice);
+	WriteToAddress(0x00478503, EvalObject);
+
 	DWORD dwOldProtect, dwNewProtect, dwNewCall, dwNewAddress, dwAddress;
 
 	dwAddress = 0x00478201;
@@ -400,7 +548,6 @@ void InitializeDirectInput()
 	VirtualProtectEx(GetCurrentProcess(), (LPVOID)dwAddress, 9, PAGE_EXECUTE_WRITECOPY, &dwOldProtect);
 	memcpy((LPVOID)dwAddress, &opCALL, 9);
 	VirtualProtectEx(GetCurrentProcess(), (LPVOID)dwAddress, 9, dwOldProtect, &dwNewProtect);
-
 }
 
 void InitializeXInput()
@@ -423,17 +570,16 @@ void InitializeXInput()
 
 __declspec(dllexport) void Initialize()
 {
-	int* functionPointer = reinterpret_cast<int*>(0x0047AF01);
-	*functionPointer = reinterpret_cast<int>(&DialogProc);
+	WriteToAddress(0x0047AF01, DialogProc); // Setup Dialog Function
+	WriteToAddress(0x0047AF0D, (char)102);  // Setup Dialog ID
+	WriteToAddress(0x0047B86E, (char)0);    // Setup Dialog WindowStyleEx
+	WriteToAddress(0x00475563, (BYTE)0xEB); // Remove always fullscreen developer hack
 
-	char* dialogIdPointer = reinterpret_cast<char*>(0x0047AF0D);
-	*dialogIdPointer = 102;
-
-	char* windowStyleExPointer = reinterpret_cast<char*>(0x0047B86E);
-	*windowStyleExPointer = 0;
-
-	unsigned char* neverWindowedPointer = reinterpret_cast<unsigned char*>(0x00475563);
-	*neverWindowedPointer = 0xEB;
+	// Cursor
+	//char* showCursorPointer = reinterpret_cast<char*>(0x0047BA89);
+	//*showCursorPointer = 1;
+	//char* setCursorPointer = reinterpret_cast<char*>(0x0047BA91);
+	//*setCursorPointer = 1;
 
 	HANDLE process = GetCurrentProcess();
 	DWORD_PTR processAffinityMask = 0x0000000F;
@@ -450,14 +596,14 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 {
 	switch (ul_reason_for_call)
 	{
-		case DLL_PROCESS_ATTACH:
-			Initialize();
-			break;
-		case DLL_THREAD_ATTACH:
-			break;
-		case DLL_THREAD_DETACH:
-		case DLL_PROCESS_DETACH:
-			break;
+	case DLL_PROCESS_ATTACH:
+		Initialize();
+		break;
+	case DLL_THREAD_ATTACH:
+		break;
+	case DLL_THREAD_DETACH:
+	case DLL_PROCESS_DETACH:
+		break;
 	}
 
 	return TRUE;
