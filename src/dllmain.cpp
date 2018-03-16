@@ -93,8 +93,72 @@ typedef const DIDEVICEOBJECTINSTANCE* LPCDIDEVICEOBJECTINSTANCE;
 typedef BOOL(FAR PASCAL* LPDIENUMDEVICEOBJECTSCALLBACKA)(LPCDIDEVICEOBJECTINSTANCEA, LPVOID);
 #define LPDIENUMDEVICEOBJECTSCALLBACK  LPDIENUMDEVICEOBJECTSCALLBACKA
 
+BOOL SupportsXInput(const GUID* guid)
+{
+	UINT i, count = 0;
+	RAWINPUTDEVICELIST* ridl;
+	BOOL result = FALSE;
+
+	if (GetRawInputDeviceList(NULL, &count, sizeof(RAWINPUTDEVICELIST)) != 0)
+		return FALSE;
+
+	ridl = new RAWINPUTDEVICELIST[count];
+
+	if (GetRawInputDeviceList(ridl, &count, sizeof(RAWINPUTDEVICELIST)) == (UINT)-1)
+	{
+		delete[] ridl;
+		return FALSE;
+	}
+
+	for (i = 0; i < count; i++)
+	{
+		RID_DEVICE_INFO rdi;
+		char name[256];
+		UINT size;
+
+		if (ridl[i].dwType != RIM_TYPEHID)
+			continue;
+
+		ZeroMemory(&rdi, sizeof(rdi));
+		rdi.cbSize = sizeof(rdi);
+		size = sizeof(rdi);
+
+		if ((INT)GetRawInputDeviceInfoA(ridl[i].hDevice,
+			RIDI_DEVICEINFO,
+			&rdi, &size) == -1)
+		{
+			continue;
+		}
+
+		if (MAKELONG(rdi.hid.dwVendorId, rdi.hid.dwProductId) != (LONG)guid->Data1)
+			continue;
+
+		memset(name, 0, sizeof(name));
+		size = sizeof(name);
+
+		if ((INT)GetRawInputDeviceInfoA(ridl[i].hDevice,
+			RIDI_DEVICENAME,
+			name, &size) == -1)
+		{
+			break;
+		}
+
+		name[sizeof(name) - 1] = '\0';
+		if (strstr(name, "IG_"))
+		{
+			result = TRUE;
+			break;
+		}
+	}
+
+	delete[] ridl;
+	return result;
+}
+
 FARPROC p[7] = { 0 };
 
+bool ps3PadFound = false;
+bool ps4PadFound = false;
 bool xBox360PadFound = false;
 int xBox360PadSlot = -1;
 
@@ -271,25 +335,51 @@ __declspec(dllexport) void __stdcall SoulReaverGamePadFix()
 		dijoystate->rgbButtons[8] = glyph;
 		dijoystate->rgbButtons[9] = pause;
 	}
-	else
+	else if (ps3PadFound || ps4PadFound)
 	{
-		BYTE jump = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_CROSS];
-		BYTE devour = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_CIRCLE];
-		BYTE action = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_SQUARE];
-		BYTE aim = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_TRIANGLE];
-		BYTE crouch = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_L1];
-		BYTE sneak = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_R1];
-		BYTE glyph = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_SHARE];
-		BYTE pause = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_OPTIONS];
-		BYTE panLeft = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_L2];
-		BYTE panRight = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_R2];
+		BYTE jump = 0;
+		BYTE devour = 0;
+		BYTE action = 0;
+		BYTE aim = 0;
+		BYTE crouch = 0;
+		BYTE sneak = 0;
+		BYTE glyph = 0;
+		BYTE pause = 0;
+		BYTE panLeft = 0;
+		BYTE panRight = 0;
+
+		if (ps3PadFound)
+		{
+			jump = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_CROSS];
+			devour = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_CIRCLE];
+			action = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_SQUARE];
+			aim = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_TRIANGLE];
+			crouch = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_L1];
+			sneak = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_R1];
+			glyph = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_SELECT];
+			pause = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_START];
+			panLeft = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_L2];
+			panRight = dijoystate->rgbButtons[PLAYSTATION3_GAMEPAD_R2];
+		}
+		else if (ps4PadFound)
+		{
+			jump = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_CROSS];
+			devour = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_CIRCLE];
+			action = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_SQUARE];
+			aim = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_TRIANGLE];
+			crouch = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_L1];
+			sneak = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_R1];
+			glyph = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_SHARE];
+			pause = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_OPTIONS];
+			panLeft = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_L2];
+			panRight = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_R2];
+		}
 
 		dijoystate->lRx = 0;
 		dijoystate->lRy = 0;
 		dijoystate->lRz = 0;
 		dijoystate->rglSlider[0] = 0;
 		dijoystate->rglSlider[1] = 0;
-		//dijoystate->rgdwPOV[0] = 0;
 		dijoystate->rgdwPOV[1] = 0;
 		dijoystate->rgdwPOV[2] = 0;
 		dijoystate->rgdwPOV[3] = 0;
@@ -304,11 +394,11 @@ __declspec(dllexport) void __stdcall SoulReaverGamePadFix()
 		dijoystate->rgbButtons[8] = glyph;
 		dijoystate->rgbButtons[9] = pause;
 
-		if (dijoystate->rgdwPOV[0] == 27000)
+		if (dijoystate->rgdwPOV[0] == 22500 || dijoystate->rgdwPOV[0] == 27000 || dijoystate->rgdwPOV[0] == 31500)
 		{
 			dijoystate->lX = -500;
 		}
-		else if (dijoystate->rgdwPOV[0] == 9000)
+		else if (dijoystate->rgdwPOV[0] == 4500 || dijoystate->rgdwPOV[0] == 9000 || dijoystate->rgdwPOV[0] == 13500)
 		{
 			dijoystate->lX = 500;
 		}
@@ -317,11 +407,11 @@ __declspec(dllexport) void __stdcall SoulReaverGamePadFix()
 			dijoystate->lX = 0;
 		}
 
-		if (dijoystate->rgdwPOV[0] == 0)
+		if (dijoystate->rgdwPOV[0] == 0 || dijoystate->rgdwPOV[0] == 4500 || dijoystate->rgdwPOV[0] == 31500)
 		{
 			dijoystate->lY = -500;
 		}
-		else if (dijoystate->rgdwPOV[0] == 18000)
+		else if (dijoystate->rgdwPOV[0] == 13500 || dijoystate->rgdwPOV[0] == 18000 || dijoystate->rgdwPOV[0] == 22500)
 		{
 			dijoystate->lY = 500;
 		}
@@ -331,6 +421,33 @@ __declspec(dllexport) void __stdcall SoulReaverGamePadFix()
 		}
 
 		dijoystate->lZ = 0;
+
+		dijoystate->rgdwPOV[0] = 0;
+	}
+	else
+	{
+		dijoystate->lX = 0;
+		dijoystate->lY = 0;
+		dijoystate->lZ = 0;
+		dijoystate->lRx = 0;
+		dijoystate->lRy = 0;
+		dijoystate->lRz = 0;
+		dijoystate->rglSlider[0] = 0;
+		dijoystate->rglSlider[1] = 0;
+		dijoystate->rgdwPOV[0] = 0;
+		dijoystate->rgdwPOV[1] = 0;
+		dijoystate->rgdwPOV[2] = 0;
+		dijoystate->rgdwPOV[3] = 0;
+		dijoystate->rgbButtons[0] = 0;
+		dijoystate->rgbButtons[1] = 0;
+		dijoystate->rgbButtons[2] = 0;
+		dijoystate->rgbButtons[3] = 0;
+		dijoystate->rgbButtons[4] = 0;
+		dijoystate->rgbButtons[5] = 0;
+		dijoystate->rgbButtons[6] = 0;
+		dijoystate->rgbButtons[7] = 0;
+		dijoystate->rgbButtons[8] = 0;
+		dijoystate->rgbButtons[9] = 0;
 	}
 
 	__asm mov eax, result;
@@ -495,8 +612,33 @@ __declspec(dllexport) INT_PTR CALLBACK DialogProc(HWND hDlg, UINT uMsg, WPARAM w
 
 __declspec(dllexport) BOOL PASCAL EvalDevice(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef)
 {
+	DWORD oldJoystick = *reinterpret_cast<DWORD*>(0x00C52FB0);
 	LPDIENUMDEVICESCALLBACK enumDevicesPointer = reinterpret_cast<LPDIENUMDEVICESCALLBACK>(0x00478460);
-	return enumDevicesPointer(lpddi, pvRef);
+	BOOL result = enumDevicesPointer(lpddi, pvRef);
+	DWORD newJoystick = *reinterpret_cast<DWORD*>(0x00C52FB0);
+
+	if (oldJoystick == 0 && newJoystick != 0)
+	{
+		// 02140e6f-0000-0000-0000-504944564944
+		GUID ps3GUID = { 0x02140e6f, 0, 0, { '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
+		// 05c4054c-0000-0000-0000-504944564944
+		GUID ps4GUID = { 0x05c4054c, 0, 0, { '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
+
+		if (lpddi->guidProduct == ps3GUID)
+		{
+			ps3PadFound = true;
+		}
+		else if (lpddi->guidProduct == ps4GUID)
+		{
+			ps4PadFound = true;
+		}
+		else if (!SupportsXInput(&lpddi->guidProduct))
+		{
+			xBox360PadFound = false;
+		}
+	}
+
+	return result;
 }
 
 __declspec(dllexport) BOOL PASCAL EvalObject(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef)
@@ -602,6 +744,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	case DLL_THREAD_ATTACH:
 		break;
 	case DLL_THREAD_DETACH:
+		break;
 	case DLL_PROCESS_DETACH:
 		break;
 	}
