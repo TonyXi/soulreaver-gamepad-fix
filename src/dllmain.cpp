@@ -31,6 +31,19 @@
 #define PLAYSTATION4_GAMEPAD_PS       12
 #define PLAYSTATION4_GAMEPAD_PAD      13
 
+#define LOGITECH_GAMEPAD_X              0
+#define LOGITECH_GAMEPAD_A              1
+#define LOGITECH_GAMEPAD_B              2
+#define LOGITECH_GAMEPAD_Y              3
+#define LOGITECH_GAMEPAD_LEFT_SHOULDER  4
+#define LOGITECH_GAMEPAD_RIGHT_SHOULDER 5
+#define LOGITECH_GAMEPAD_LEFT_TRIGGER   6
+#define LOGITECH_GAMEPAD_RIGHT_TRIGGER  7
+#define LOGITECH_GAMEPAD_SELECT         8
+#define LOGITECH_GAMEPAD_START          9
+#define LOGITECH_GAMEPAD_LEFT_THUMB     10
+#define LOGITECH_GAMEPAD_RIGHT_THUMB    11
+
 typedef struct DIJOYSTATE {
 	LONG    lX;             /* x-axis position      */
 	LONG    lY;             /* y-axis position      */
@@ -159,6 +172,7 @@ FARPROC p[7] = { 0 };
 
 bool ps3PadFound = false;
 bool ps4PadFound = false;
+bool logitechPadFound = false;
 bool xBox360PadFound = false;
 int xBox360PadSlot = -1;
 
@@ -335,7 +349,7 @@ __declspec(dllexport) void __stdcall SoulReaverGamePadFix()
 		dijoystate->rgbButtons[8] = glyph;
 		dijoystate->rgbButtons[9] = pause;
 	}
-	else if (ps3PadFound || ps4PadFound)
+	else if (ps3PadFound || ps4PadFound || logitechPadFound)
 	{
 		BYTE jump = 0;
 		BYTE devour = 0;
@@ -373,6 +387,19 @@ __declspec(dllexport) void __stdcall SoulReaverGamePadFix()
 			pause = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_OPTIONS];
 			panLeft = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_L2];
 			panRight = dijoystate->rgbButtons[PLAYSTATION4_GAMEPAD_R2];
+		}
+		else if (logitechPadFound)
+		{
+			jump = dijoystate->rgbButtons[LOGITECH_GAMEPAD_A];
+			devour = dijoystate->rgbButtons[LOGITECH_GAMEPAD_B];
+			action = dijoystate->rgbButtons[LOGITECH_GAMEPAD_X];
+			aim = dijoystate->rgbButtons[LOGITECH_GAMEPAD_Y];
+			crouch = dijoystate->rgbButtons[LOGITECH_GAMEPAD_LEFT_SHOULDER];
+			sneak = dijoystate->rgbButtons[LOGITECH_GAMEPAD_RIGHT_SHOULDER];
+			glyph = dijoystate->rgbButtons[LOGITECH_GAMEPAD_SELECT];
+			pause = dijoystate->rgbButtons[LOGITECH_GAMEPAD_START];
+			panLeft = dijoystate->rgbButtons[LOGITECH_GAMEPAD_LEFT_TRIGGER];
+			panRight = dijoystate->rgbButtons[LOGITECH_GAMEPAD_RIGHT_TRIGGER];
 		}
 
 		dijoystate->lRx = 0;
@@ -619,18 +646,33 @@ __declspec(dllexport) BOOL PASCAL EvalDevice(LPCDIDEVICEINSTANCE lpddi, LPVOID p
 
 	if (oldJoystick == 0 && newJoystick != 0)
 	{
-		// 02140e6f-0000-0000-0000-504944564944
-		GUID ps3GUID = { 0x02140e6f, 0, 0, { '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
-		// 05c4054c-0000-0000-0000-504944564944
-		GUID ps4GUID = { 0x05c4054c, 0, 0, { '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
+		// 0268054c-0000-0000-0000-504944564944
+		GUID ps3GUID1 = { 0x0268054c, 0, 0,{ '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
 
-		if (lpddi->guidProduct == ps3GUID)
+		// 05c4054c-0000-0000-0000-504944564944
+		GUID ps4GUID1 = { 0x05c4054c, 0, 0, { '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
+		// 09cc054c-0000-0000-0000-504944564944
+		GUID ps4GUID2 = { 0x09cc054c, 0, 0,{ '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
+
+		// c216046d-0000-0000-0000-504944564944
+		GUID logitechGUID1 = { 0xc216046d, 0, 0, { '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
+		// c219046d-0000-0000-0000-504944564944
+		GUID logitechGUID2 = { 0xc219046d, 0, 0,{ '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
+		// cad1046d-0000-0000-0000-504944564944
+		GUID logitechGUID3 = { 0xcad1046d, 0, 0,{ '\0', '\0', 'P', 'I', 'D', 'V', 'I', 'D' } };
+
+		if (lpddi->guidProduct == ps3GUID1)
 		{
 			ps3PadFound = true;
 		}
-		else if (lpddi->guidProduct == ps4GUID)
+		else if (lpddi->guidProduct == ps4GUID1 || lpddi->guidProduct == ps4GUID2)
 		{
 			ps4PadFound = true;
+		}
+		else if (lpddi->guidProduct == logitechGUID1 || lpddi->guidProduct == logitechGUID2 ||
+			lpddi->guidProduct == logitechGUID3)
+		{
+			logitechPadFound = true;
 		}
 		else if (!SupportsXInput(&lpddi->guidProduct))
 		{
